@@ -3,10 +3,11 @@ import { Dashboard } from './components/Dashboard'
 import { Flashcards } from './components/Flashcards'
 import { Quiz } from './components/Quiz'
 import { MatchingGame } from './components/MatchingGame'
-import { PhaseHeader } from './components/PhaseHeader'
+import { Sentences } from './components/Sentences'
 import { vocabData } from './data/vocab'
 import { clearProgress, exportProgress, importProgress, loadProgress, recordSession, saveProgress } from './utils/storage'
 import { useTimer } from './hooks/useTimer'
+import { useKeyboard } from './hooks/useKeyboard'
 import type { SessionStats, VocabularyItem } from './types/vocab'
 import type { WordResult } from './components/Quiz'
 
@@ -18,8 +19,6 @@ function App() {
   const [sessionWords, setSessionWords] = useState<VocabularyItem[]>([])
   const [quizScore, setQuizScore] = useState(0)
   const [quizResults, setQuizResults] = useState<WordResult[]>([])
-  const [sentenceIndex, setSentenceIndex] = useState(0)
-  const [sentences, setSentences] = useState<string[]>([])
   const [showResetModal, setShowResetModal] = useState(false)
   const timer = useTimer()
 
@@ -46,8 +45,6 @@ function App() {
     setSessionWords(sampled)
     setQuizScore(0)
     setQuizResults([])
-    setSentenceIndex(0)
-    setSentences(new Array(sampled.length).fill(''))
     timer.start()
     setPhase('flashcards')
   }
@@ -84,14 +81,16 @@ function App() {
     }
   }
 
+  // Keyboard for dashboard and complete screens (sub-components handle their own)
+  useKeyboard({
+    Enter: () => {
+      if (phase === 'complete') setPhase('dashboard')
+      if (phase === 'dashboard') startSession()
+    },
+  })
+
   if (phase === 'flashcards') {
-    return (
-      <Flashcards
-        words={sessionWords}
-        timer={timer.formatted}
-        onContinue={() => setPhase('quiz')}
-      />
-    )
+    return <Flashcards words={sessionWords} timer={timer.formatted} onContinue={() => setPhase('quiz')} />
   }
 
   if (phase === 'quiz') {
@@ -109,80 +108,11 @@ function App() {
   }
 
   if (phase === 'matching') {
-    return (
-      <MatchingGame
-        words={sessionWords}
-        timer={timer.formatted}
-        onComplete={() => setPhase('sentences')}
-      />
-    )
+    return <MatchingGame words={sessionWords} timer={timer.formatted} onComplete={() => setPhase('sentences')} />
   }
 
   if (phase === 'sentences') {
-    const current = sessionWords[sentenceIndex]
-    const go = (dir: 'prev' | 'next') =>
-      setSentenceIndex((i) => (dir === 'prev' ? Math.max(0, i - 1) : Math.min(sessionWords.length - 1, i + 1)))
-
-    return (
-      <div className="min-h-screen bg-v-bg px-4 py-8">
-        <div className="mx-auto max-w-2xl">
-          <div className="rounded-2xl bg-v-card p-6" style={{ border: '1px solid #252545' }}>
-            <PhaseHeader phase={4} wordIndex={sentenceIndex} totalWords={sessionWords.length} timer={timer.formatted} />
-
-            <div className="mb-4 rounded-xl p-4" style={{ background: '#101020', border: '1px solid #252545' }}>
-              <h2 className="font-serif text-3xl font-bold text-v-text">{current.word}</h2>
-              <p className="mt-2 text-sm text-v-muted">{current.definition}</p>
-            </div>
-
-            <p className="mb-2 text-sm font-medium text-v-text">Write a sentence using this word</p>
-            <textarea
-              value={sentences[sentenceIndex] || ''}
-              onChange={(e) => {
-                const val = e.target.value
-                setSentences((prev) => { const next = [...prev]; next[sentenceIndex] = val; return next })
-              }}
-              className="min-h-32 w-full rounded-xl p-4 text-sm leading-relaxed outline-none transition"
-              style={{
-                background: '#101020',
-                border: '1px solid #252545',
-                color: '#E5E3FF',
-                resize: 'vertical',
-              }}
-              onFocus={(e) => (e.target.style.borderColor = '#7B5CF5')}
-              onBlur={(e) => (e.target.style.borderColor = '#252545')}
-              placeholder="Type your sentence here…"
-            />
-
-            <div className="mt-4 flex items-center justify-between border-t pt-4" style={{ borderColor: '#252545' }}>
-              <button
-                onClick={() => go('prev')}
-                disabled={sentenceIndex === 0}
-                className="rounded-lg px-4 py-2 font-mono text-sm text-v-muted transition hover:text-v-text disabled:opacity-30"
-              >
-                ← Prev
-              </button>
-              {sentenceIndex < sessionWords.length - 1 ? (
-                <button
-                  onClick={() => go('next')}
-                  className="rounded-xl px-5 py-2.5 font-semibold text-white transition hover:opacity-90"
-                  style={{ background: '#E85555' }}
-                >
-                  Next →
-                </button>
-              ) : (
-                <button
-                  onClick={completeSession}
-                  className="rounded-xl px-5 py-2.5 font-semibold text-white transition hover:opacity-90"
-                  style={{ background: '#2ECDA8' }}
-                >
-                  Finish Session ✓
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+    return <Sentences words={sessionWords} timer={timer.formatted} onComplete={completeSession} />
   }
 
   if (phase === 'complete') {
@@ -195,7 +125,7 @@ function App() {
               {quizScore}/{sessionWords.length}
             </h2>
             <p className="mt-1 font-mono text-sm text-v-muted">
-              {Math.round((quizScore / sessionWords.length) * 100)}% on the quiz · {timer.formatted} total
+              {Math.round((quizScore / sessionWords.length) * 100)}% on the quiz · {timer.formatted} elapsed
             </p>
           </div>
 
@@ -213,7 +143,7 @@ function App() {
                   }}
                 >
                   <span
-                    className="font-mono text-sm w-4 shrink-0"
+                    className="w-4 shrink-0 font-mono text-sm"
                     style={{ color: correct === true ? '#2ECDA8' : correct === false ? '#E85555' : '#6866A0' }}
                   >
                     {correct === true ? '✓' : correct === false ? '✗' : '–'}
@@ -232,13 +162,14 @@ function App() {
             className="w-full rounded-xl py-3 font-semibold text-white transition hover:opacity-90"
             style={{ background: '#7B5CF5' }}
           >
-            Back to Dashboard
+            Back to Dashboard <span className="ml-2 font-mono text-xs opacity-60">Enter</span>
           </button>
         </div>
       </div>
     )
   }
 
+  // Dashboard
   return (
     <>
       <Dashboard

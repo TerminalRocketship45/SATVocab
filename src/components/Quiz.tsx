@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { VocabularyItem } from '../types/vocab'
 import { PhaseHeader } from './PhaseHeader'
+import { useKeyboard } from '../hooks/useKeyboard'
 
 export interface WordResult {
   word: string
@@ -36,14 +37,25 @@ export function Quiz({ words, timer, onComplete }: QuizProps) {
   }
 
   const next = () => {
+    if (!selected) return
     if (index < words.length - 1) {
       setIndex(index + 1)
       setSelected(null)
     } else {
-      const finalResults = [...results]
-      onComplete(score + (selected === current.definition ? 0 : 0), finalResults)
+      onComplete(score, [...results])
     }
   }
+
+  useKeyboard({
+    '1': () => handleSelect(options[0]),
+    '2': () => handleSelect(options[1]),
+    '3': () => handleSelect(options[2]),
+    '4': () => handleSelect(options[3]),
+    Enter: next,
+    ArrowRight: next,
+  })
+
+  const KEYS = ['1', '2', '3', '4']
 
   return (
     <div className="min-h-screen bg-v-bg px-4 py-8">
@@ -57,7 +69,7 @@ export function Quiz({ words, timer, onComplete }: QuizProps) {
           </div>
 
           <div className="space-y-2.5">
-            {options.map((option) => {
+            {options.map((option, i) => {
               const isCorrect = option === current.definition
               const isSelected = selected === option
               const showCorrect = selected !== null && isCorrect
@@ -68,17 +80,22 @@ export function Quiz({ words, timer, onComplete }: QuizProps) {
                   key={option}
                   onClick={() => handleSelect(option)}
                   disabled={!!selected}
-                  className="w-full rounded-xl px-4 py-3.5 text-left text-sm leading-snug transition-all"
+                  className="flex w-full items-start gap-3 rounded-xl px-4 py-3.5 text-left text-sm leading-snug transition-all"
                   style={{
-                    background: showCorrect
-                      ? '#2ECDA818'
-                      : showWrong
-                        ? '#E8555518'
-                        : '#101020',
+                    background: showCorrect ? '#2ECDA818' : showWrong ? '#E8555518' : '#101020',
                     border: `1px solid ${showCorrect ? '#2ECDA8' : showWrong ? '#E85555' : '#252545'}`,
                     color: showCorrect ? '#2ECDA8' : showWrong ? '#E85555' : '#E5E3FF',
                   }}
                 >
+                  <span
+                    className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 font-mono text-xs"
+                    style={{
+                      background: showCorrect ? '#2ECDA830' : showWrong ? '#E8555530' : '#252545',
+                      color: showCorrect ? '#2ECDA8' : showWrong ? '#E85555' : '#6866A0',
+                    }}
+                  >
+                    {KEYS[i]}
+                  </span>
                   {option}
                 </button>
               )
@@ -102,14 +119,17 @@ export function Quiz({ words, timer, onComplete }: QuizProps) {
             <span className="font-mono text-sm text-v-muted">
               Score <span className="text-v-text">{score}</span> / {index + 1}
             </span>
-            {selected && (
+            {selected ? (
               <button
                 onClick={next}
-                className="rounded-xl px-5 py-2.5 font-semibold text-white transition hover:opacity-90"
+                className="flex items-center gap-2 rounded-xl px-5 py-2.5 font-semibold text-white transition hover:opacity-90"
                 style={{ background: '#F5A523' }}
               >
-                {index === words.length - 1 ? 'See Results →' : 'Next →'}
+                {index === words.length - 1 ? 'See Results' : 'Next'}
+                <span className="font-mono text-xs opacity-70">Enter</span>
               </button>
+            ) : (
+              <p className="font-mono text-xs text-v-muted">Press 1 – 4 to answer</p>
             )}
           </div>
         </div>

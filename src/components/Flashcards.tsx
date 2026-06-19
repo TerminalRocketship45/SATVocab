@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { VocabularyItem } from '../types/vocab'
 import { PhaseHeader } from './PhaseHeader'
+import { useKeyboard } from '../hooks/useKeyboard'
 
 interface FlashcardsProps {
   words: VocabularyItem[]
@@ -28,6 +29,13 @@ export function Flashcards({ words, timer, onContinue }: FlashcardsProps) {
     }, 100)
   }
 
+  useKeyboard({
+    ArrowLeft: () => go('prev'),
+    ArrowRight: () => go('next'),
+    ' ': flip,
+    Enter: () => { if (allSeen) onContinue() },
+  })
+
   return (
     <div className="min-h-screen bg-v-bg px-4 py-8">
       <div className="mx-auto max-w-2xl">
@@ -43,7 +51,7 @@ export function Flashcards({ words, timer, onContinue }: FlashcardsProps) {
                 style={{ background: '#101020', border: '1px solid #252545' }}
               >
                 <p className="mb-3 font-mono text-xs uppercase tracking-widest text-v-muted">
-                  {flipped ? '' : 'tap to reveal definition'}
+                  Space to flip
                 </p>
                 <h2 className="font-serif text-5xl font-bold text-v-text">{current.word}</h2>
                 {!flipped && (
@@ -75,17 +83,17 @@ export function Flashcards({ words, timer, onContinue }: FlashcardsProps) {
             <button
               onClick={() => go('prev')}
               disabled={index === 0}
-              className="rounded-lg px-4 py-2 font-mono text-sm text-v-muted transition hover:text-v-text disabled:opacity-30"
+              className="flex items-center gap-2 rounded-lg px-4 py-2 font-mono text-sm text-v-muted transition hover:text-v-text disabled:opacity-30"
             >
-              ← Prev
+              <Kbd>←</Kbd> Prev
             </button>
 
             <button
               onClick={() => go('next')}
               disabled={index === words.length - 1}
-              className="rounded-lg px-4 py-2 font-mono text-sm text-v-muted transition hover:text-v-text disabled:opacity-30"
+              className="flex items-center gap-2 rounded-lg px-4 py-2 font-mono text-sm text-v-muted transition hover:text-v-text disabled:opacity-30"
             >
-              Next →
+              Next <Kbd>→</Kbd>
             </button>
           </div>
 
@@ -96,7 +104,7 @@ export function Flashcards({ words, timer, onContinue }: FlashcardsProps) {
                 className="w-full rounded-xl py-3 font-semibold text-white transition hover:opacity-90"
                 style={{ background: '#7B5CF5' }}
               >
-                Continue to Quiz →
+                Continue to Quiz → <span className="ml-2 font-mono text-xs opacity-60">Enter</span>
               </button>
             ) : (
               <p className="text-center font-mono text-xs text-v-muted">
@@ -107,5 +115,16 @@ export function Flashcards({ words, timer, onContinue }: FlashcardsProps) {
         </div>
       </div>
     </div>
+  )
+}
+
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded px-1.5 py-0.5 font-mono text-xs"
+      style={{ background: '#252545', color: '#9896C0', minWidth: 22 }}
+    >
+      {children}
+    </span>
   )
 }

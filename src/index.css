@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #E5E3FF;
+  background: #0A0A11;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #0A0A11;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@layer utilities {
+  .card-flip {
+    perspective: 1200px;
+  }
+  .card-inner {
+    transform-style: preserve-3d;
+    transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .card-inner.flipped {
+    transform: rotateY(180deg);
+  }
+  .card-face {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .card-back {
+    transform: rotateY(180deg);
+  }
+}
